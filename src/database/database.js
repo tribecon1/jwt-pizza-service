@@ -32,10 +32,20 @@ class DB {
   async addUser(user) {
     const connection = await this.getConnection();
     try {
-      const preexistingUser = await this.query(connection, `SELECT * FROM user WHERE email=?`, [user.email]);
-      if (preexistingUser) {
-        throw new StatusCodeError('this user already exists, login instead of registering', 400);
+      //MY ADDED CODE TO REDUCE TEST OVERLOAD OF ACCTS
+      let preexistingUser;
+      try {
+        preexistingUser = await this.getUser(user.email, user.password);
+      } catch (e) {
+        if (e.statusCode !== 404) { // 404 is expected error of not found
+          throw e;
+        }
       }
+      if (preexistingUser) {
+        return preexistingUser; 
+      }
+      // END OF ADDED CODE, in case it breaks anything
+
       const hashedPassword = await bcrypt.hash(user.password, 10);
 
       const userResult = await this.query(connection, `INSERT INTO user (name, email, password) VALUES (?, ?, ?)`, [user.name, user.email, hashedPassword]);
@@ -155,7 +165,7 @@ class DB {
       const orderResult = await this.query(connection, `INSERT INTO dinerOrder (dinerId, franchiseId, storeId, date) VALUES (?, ?, ?, now())`, [user.id, order.franchiseId, order.storeId]);
       const orderId = orderResult.insertId;
       for (const item of order.items) {
-        const menuId = await this.getID(connection, 'id', item.menuId, 'menu');
+        const menuId = await this.getID(connection, 'id', item.menuId, 'menu'); // Purpose of this method instead of using item.menuId
         await this.query(connection, `INSERT INTO orderItem (orderId, menuId, description, price) VALUES (?, ?, ?, ?)`, [orderId, menuId, item.description, item.price]);
       }
       return { ...order, id: orderId };
