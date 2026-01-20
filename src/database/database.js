@@ -32,6 +32,10 @@ class DB {
   async addUser(user) {
     const connection = await this.getConnection();
     try {
+      const preexistingUser = await this.query(connection, `SELECT * FROM user WHERE email=?`, [user.email]);
+      if (preexistingUser) {
+        throw new StatusCodeError('this user already exists, login instead of registering', 400);
+      }
       const hashedPassword = await bcrypt.hash(user.password, 10);
 
       const userResult = await this.query(connection, `INSERT INTO user (name, email, password) VALUES (?, ?, ?)`, [user.name, user.email, hashedPassword]);
