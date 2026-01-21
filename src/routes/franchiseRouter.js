@@ -96,6 +96,7 @@ franchiseRouter.post(
 // deleteFranchise
 franchiseRouter.delete(
   '/:franchiseId',
+  authRouter.authenticateToken, //added by me
   asyncHandler(async (req, res) => {
     const franchiseId = Number(req.params.franchiseId);
     await DB.deleteFranchise(franchiseId);

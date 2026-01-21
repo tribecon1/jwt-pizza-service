@@ -20,7 +20,7 @@ test('Get menu', async () =>{
 });
 
 test('Get orders', async () => {
-    const getOrdersRes = await request(app).get('/api/order/').set('Authorization', `Bearer ${testUserAuthToken}`).query({ page: 1 }); 
+    const getOrdersRes = await request(app).get('/api/order').set('Authorization', `Bearer ${testUserAuthToken}`).query({ page: 1 }); 
 
     expect(getOrdersRes.status).toBe(200);
     expect(getOrdersRes.body).toBeDefined();
@@ -36,7 +36,7 @@ test('Place order', async () => {
         })
     });
 
-    const placeOrderRes = await request(app).post('/api/order/').set('Authorization', `Bearer ${testUserAuthToken}`).send(testOrder);
+    const placeOrderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${testUserAuthToken}`).send(testOrder);
 
     expect(placeOrderRes.status).toBe(200);
     expect(placeOrderRes.body.jwt).toBe(testPizzaJWT);
