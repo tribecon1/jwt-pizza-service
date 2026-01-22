@@ -4,7 +4,7 @@ const app = require('../src/service');
 
 const testUser = { name: 'menu tester', email: 'menutester@test.com', password: 'a' };
 const testPizzaJWT = "fakeJWTvaluehere";
-const testOrder = { franchiseId: 1, storeId: 2, items: [{menuId: 2, description: 'Pepperoni', price: 0.0042}] } // The npm run test command would drop and re-insert data to make these tests reliable
+const testOrder = { franchiseId: 1, storeId: 1, items: [{menuId: 2, description: 'Pepperoni', price: 0.0042}] } // The npm run test command would drop and re-insert data to make these tests reliable
 let testUserAuthToken;
 
 beforeAll(async () => {
