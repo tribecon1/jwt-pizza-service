@@ -38,6 +38,7 @@ test('Place order', async () => {
 
     const placeOrderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${testUserAuthToken}`).send(testOrder);
 
+    console.log(placeOrderRes.body);
     expect(placeOrderRes.status).toBe(200);
     expect(placeOrderRes.body.jwt).toBe(testPizzaJWT);
     const mockInsertedOrder = {...testOrder, id: expect.any(Number)}

@@ -2,7 +2,7 @@ set -e
 
 host="http://localhost:3000"
 
-echo "Seeding API at $host"
+echo "Calling Service API at $host to insert test data"
 
 response=$(curl -s -X PUT $host/api/auth \
   -d '{"email":"a@jwt.com", "password":"admin"}' \
