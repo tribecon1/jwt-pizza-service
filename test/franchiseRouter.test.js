@@ -43,8 +43,8 @@ test("Create franchise", async () => {
   const createNewFranchiseRes = await request(app).post("/api/franchise").set("Authorization", `Bearer ${testUserAuthToken}`).send(testFranchise);
 
   expect(createNewFranchiseRes.status).toBe(200);
-  const mockCreatedFranchise = { ...testFranchise, id: expect.any(Number) };
-  expect(createNewFranchiseRes.body).toMatchObject(mockCreatedFranchise);
+  const expectedCreatedFranchise = { ...testFranchise, id: expect.any(Number) };
+  expect(createNewFranchiseRes.body).toMatchObject(expectedCreatedFranchise);
 });
 
 test("Create/Delete franchise", async () => {
@@ -67,8 +67,8 @@ test("Create store of franchise", async () => {
     const createStoreRes = await request(app).post(`/api/franchise/${storeFranchiseId}/store`).set("Authorization", `Bearer ${testUserAuthToken}`).send(testStore);
 
     expect(createStoreRes.status).toBe(200);
-    const mockCreatedStore = {...testStore, id: expect.any(Number), franchiseId: storeFranchiseId};
-    expect(createStoreRes.body).toMatchObject(mockCreatedStore);
+    const expectedCreatedStore = {...testStore, id: expect.any(Number), franchiseId: storeFranchiseId};
+    expect(createStoreRes.body).toMatchObject(expectedCreatedStore);
 });
 
 test("Create/Delete store", async () => {

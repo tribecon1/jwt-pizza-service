@@ -40,6 +40,6 @@ test('Place order', async () => {
 
     expect(placeOrderRes.status).toBe(200);
     expect(placeOrderRes.body.jwt).toBe(testPizzaJWT);
-    const mockInsertedOrder = {...testOrder, id: expect.any(Number)}
-    expect(placeOrderRes.body.order).toMatchObject(mockInsertedOrder);
+    const expectedInsertedOrder = {...testOrder, id: expect.any(Number)}
+    expect(placeOrderRes.body.order).toMatchObject(expectedInsertedOrder);
 });

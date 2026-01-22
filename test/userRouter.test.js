@@ -25,6 +25,6 @@ test('Get my own user info', async () => {
     const getMyUserRes = await request(app).get('/api/user/me').set("Authorization", `Bearer ${testUserAuthToken}`);
 
     expect(getMyUserRes.status).toBe(200);
-    const mockCurrUser = {email: testAdminUser.email, name: testAdminUser.name, iat: expect.any(Number), id: expect.any(Number)}
-    expect(getMyUserRes.body).toMatchObject(mockCurrUser);
+    const expectedCurrUser = {email: testAdminUser.email, name: testAdminUser.name, iat: expect.any(Number), id: expect.any(Number)}
+    expect(getMyUserRes.body).toMatchObject(expectedCurrUser);
 });
