@@ -60,7 +60,7 @@ jobs:
       # My added portion for inserting the bulk test data
       - name: Start API server
         run: |
-          npm run start:test &
+          npm run start &
           echo $! > server.pid
 
       - name: Wait for API
