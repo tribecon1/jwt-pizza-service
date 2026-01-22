@@ -165,7 +165,8 @@ class DB {
       const orderResult = await this.query(connection, `INSERT INTO dinerOrder (dinerId, franchiseId, storeId, date) VALUES (?, ?, ?, now())`, [user.id, order.franchiseId, order.storeId]);
       const orderId = orderResult.insertId;
       for (const item of order.items) {
-        const menuId = await this.getID(connection, 'id', item.menuId, 'menu'); // Purpose of this method instead of using item.menuId
+        // const menuId = await this.getID(connection, 'id', item.menuId, 'menu'); // Purpose of this method instead of using item.menuId
+        const menuId = item.menuId // the above method is redundant
         await this.query(connection, `INSERT INTO orderItem (orderId, menuId, description, price) VALUES (?, ?, ?, ?)`, [orderId, menuId, item.description, item.price]);
       }
       return { ...order, id: orderId };
