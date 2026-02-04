@@ -48,7 +48,7 @@ test('list users filtered by name', async () => {
   const listUsersRes = await request(app)
     .get('/api/user')
     .set('Authorization', 'Bearer ' + testUserAuthToken)
-    .query({ name: 'admin' });
+    .query({ name: 'Tester' });
   expect(listUsersRes.status).toBe(200);
   const expectedTestAdminUserRoles = testAdminUser.roles.map(roleObj => roleObj.role);
   const expectedTestAdminUser = { email: testAdminUser.email, id: testAdminUser.id, name: testAdminUser.name, roles: expectedTestAdminUserRoles }
