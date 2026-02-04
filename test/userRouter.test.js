@@ -5,7 +5,7 @@ const { Role, DB } = require("../src/database/database.js");
 
 async function createAdminUser() {
   let user = { password: "toomanysecrets", roles: [{ role: Role.Admin }] };
-  user.name = "adminUserTester";
+  user.name = "FunkyFresh";
   user.email = user.name + "@admin.com";
 
   user = await DB.addUser(user);
@@ -48,7 +48,7 @@ test('list users filtered by name', async () => {
   const listUsersRes = await request(app)
     .get('/api/user')
     .set('Authorization', 'Bearer ' + testUserAuthToken)
-    .query({ name: 'Tester' });
+    .query({ name: 'Funky' });
   expect(listUsersRes.status).toBe(200);
   const expectedTestAdminUserRoles = testAdminUser.roles.map(roleObj => roleObj.role);
   const expectedTestAdminUser = { email: testAdminUser.email, id: testAdminUser.id, name: testAdminUser.name, roles: expectedTestAdminUserRoles }
