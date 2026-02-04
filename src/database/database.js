@@ -74,8 +74,10 @@ class DB {
     try {
       const userResult = await this.query(connection, `SELECT * FROM user WHERE email=?`, [email]);
       const user = userResult[0];
-      if (!user || (password && !(await bcrypt.compare(password, user.password)))) {
+      if (!user) {
         throw new StatusCodeError('unknown user', 404);
+      } else if ((password && !(await bcrypt.compare(password, user.password)))) {
+        throw new StatusCodeError('A user w/ this email already exists using a different password', 403);
       }
 
       const roleResult = await this.query(connection, `SELECT * FROM userRole WHERE userId=?`, [user.id]);
@@ -108,6 +110,37 @@ class DB {
         await this.query(connection, query);
       }
       return this.getUser(email, password);
+    } finally {
+      connection.end();
+    }
+  }
+
+  async listUsers(page = 0, limit = 10, nameFilter = '*') {
+    const connection = await this.getConnection();
+    const offset = page * limit;
+    nameFilter = (nameFilter ?? '*').replace(/\*/g, '%');
+    if (!nameFilter.includes('%')) {
+      nameFilter = `%${nameFilter}%`;
+    }
+    try {
+      let usersWithRoles = await this.query(connection, 
+        `SELECT 
+          u.id, 
+          u.name, 
+          u.email, 
+          GROUP_CONCAT(ur.role ORDER BY ur.role) AS roles 
+        FROM user u 
+        LEFT JOIN userRole ur ON ur.userId = u.id 
+        WHERE u.name LIKE ? 
+        GROUP BY u.id, u.name, u.email 
+        LIMIT ${limit + 1} OFFSET ${offset};`, 
+        [nameFilter]);
+
+      const more = usersWithRoles.length > limit;
+      if (more) {
+        usersWithRoles = usersWithRoles.slice(0, limit);
+      }
+      return [usersWithRoles, more];
     } finally {
       connection.end();
     }
@@ -222,7 +255,10 @@ class DB {
     const connection = await this.getConnection();
 
     const offset = page * limit;
-    nameFilter = nameFilter.replace(/\*/g, '%');
+    nameFilter = (nameFilter ?? '*').replace(/\*/g, '%');
+    if (!nameFilter.includes('%')) {
+      nameFilter = `%${nameFilter}%`;
+    }
 
     try {
       let franchises = await this.query(connection, `SELECT id, name FROM franchise WHERE name LIKE ? LIMIT ${limit + 1} OFFSET ${offset}`, [nameFilter]);

@@ -35,25 +35,23 @@ test('list users unauthorized', async () => {
 });
 
 test('list users', async () => {
-  const [user, userToken] = await registerUser(request(app));
   const listUsersRes = await request(app)
     .get('/api/user')
-    .set('Authorization', 'Bearer ' + userToken);
+    .set('Authorization', 'Bearer ' + testUserAuthToken);
   expect(listUsersRes.status).toBe(200);
+  const expectedTestAdminUserRoles = testAdminUser.roles.map(roleObj => roleObj.role);
+  const expectedTestAdminUser = { email: testAdminUser.email, id: testAdminUser.id, name: testAdminUser.name, roles: expectedTestAdminUserRoles }
+  expect(listUsersRes.body.users).toContainEqual(expectedTestAdminUser);
 });
 
-async function registerUser(service) {
-  const testUser = {
-    name: 'pizza diner',
-    email: `${randomName()}@test.com`,
-    password: 'a',
-  };
-  const registerRes = await service.post('/api/auth').send(testUser);
-  registerRes.body.user.password = testUser.password;
-
-  return [registerRes.body.user, registerRes.body.token];
-}
-
-function randomName() {
-  return Math.random().toString(36).substring(2, 12);
-}
+test('list users filtered by name', async () => {
+  const listUsersRes = await request(app)
+    .get('/api/user')
+    .set('Authorization', 'Bearer ' + testUserAuthToken)
+    .query({ name: 'admin' });
+  expect(listUsersRes.status).toBe(200);
+  const expectedTestAdminUserRoles = testAdminUser.roles.map(roleObj => roleObj.role);
+  const expectedTestAdminUser = { email: testAdminUser.email, id: testAdminUser.id, name: testAdminUser.name, roles: expectedTestAdminUserRoles }
+  expect(listUsersRes.body.users.length).toEqual(1);
+  expect(listUsersRes.body.users[0]).toEqual(expectedTestAdminUser)
+});

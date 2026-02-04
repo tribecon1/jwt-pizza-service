@@ -82,7 +82,17 @@ userRouter.get(
   '/',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
-    res.json({ users: [], });
+    const user = req.user;
+    if (!user.isRole(Role.Admin)) {
+      return res.status(403).json({ message: 'unauthorized' });
+    }
+    const [users, more] = await DB.listUsers(req.query.page, req.query.limit, req.query.name);
+    const usersWithRoles = users.map(u => ({
+      ...u,
+      roles: u.roles ? u.roles.split(',') : []
+    }));
+
+    res.status(200).json({ users: usersWithRoles, more });
   })
 );
 
