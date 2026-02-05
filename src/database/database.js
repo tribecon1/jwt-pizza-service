@@ -122,24 +122,54 @@ class DB {
     if (!nameFilter.includes('%')) {
       nameFilter = `%${nameFilter}%`;
     }
+
     try {
-      let usersWithRoles = await this.query(connection, 
-        `SELECT 
-          u.id, 
-          u.name, 
-          u.email, 
-          GROUP_CONCAT(ur.role ORDER BY ur.role) AS roles 
-        FROM user u 
-        LEFT JOIN userRole ur ON ur.userId = u.id 
-        WHERE u.name LIKE ? 
-        GROUP BY u.id, u.name, u.email 
-        LIMIT ${limit + 1} OFFSET ${offset};`, 
-        [nameFilter]);
+      const users = await this.query(
+        connection,
+        `
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          ur.role,
+          ur.objectId
+        FROM user u
+        LEFT JOIN userRole ur ON ur.userId = u.id
+        WHERE u.name LIKE ?
+        ORDER BY u.id
+        LIMIT ${limit + 1} OFFSET ${offset};
+        `,
+        [nameFilter]
+      );
+      console.log("Raw init users", users);
+
+      const userMap = new Map();
+
+      for (const user of users) {
+        if (!userMap.has(user.id)) {
+          userMap.set(user.id, {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            roles: [],
+          });
+        }
+
+        if (user.role) {
+          userMap.get(user.id).roles.push({
+            role: user.role,
+            objectId: user.objectId?.toString(),
+          });
+        }
+      }
+
+      let usersWithRoles = Array.from(userMap.values());
 
       const more = usersWithRoles.length > limit;
       if (more) {
         usersWithRoles = usersWithRoles.slice(0, limit);
       }
+      console.log("Users Found and Enhanced", usersWithRoles);
       return [usersWithRoles, more];
     } finally {
       connection.end();

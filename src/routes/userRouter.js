@@ -87,12 +87,8 @@ userRouter.get(
       return res.status(403).json({ message: 'unauthorized' });
     }
     const [users, more] = await DB.listUsers(req.query.page, req.query.limit, req.query.name);
-    const usersWithRoles = users.map(u => ({
-      ...u,
-      roles: u.roles ? u.roles.split(',') : []
-    }));
 
-    res.status(200).json({ users: usersWithRoles, more });
+    res.status(200).json({ users, more });
   })
 );
 

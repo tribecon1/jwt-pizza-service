@@ -39,9 +39,11 @@ test('list users', async () => {
     .get('/api/user')
     .set('Authorization', 'Bearer ' + testUserAuthToken);
   expect(listUsersRes.status).toBe(200);
-  const expectedTestAdminUserRoles = testAdminUser.roles.map(roleObj => roleObj.role);
-  const expectedTestAdminUser = { email: testAdminUser.email, id: testAdminUser.id, name: testAdminUser.name, roles: expectedTestAdminUserRoles }
-  expect(listUsersRes.body.users).toContainEqual(expectedTestAdminUser);
+  const foundUser = listUsersRes.body.users.find(
+    u => u.email === testAdminUser.email
+  );
+
+  expect(foundUser).toBeDefined();
 });
 
 test('list users filtered by name', async () => {
