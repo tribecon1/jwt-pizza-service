@@ -119,9 +119,6 @@ class DB {
     const connection = await this.getConnection();
     const offset = page * limit;
     nameFilter = (nameFilter ?? '*').replace(/\*/g, '%');
-    if (!nameFilter.includes('%')) {
-      nameFilter = `%${nameFilter}%`;
-    }
 
     try {
       const users = await this.query(
@@ -141,7 +138,6 @@ class DB {
         `,
         [nameFilter]
       );
-      console.log("Raw init users", users);
 
       const userMap = new Map();
 
@@ -169,7 +165,6 @@ class DB {
       if (more) {
         usersWithRoles = usersWithRoles.slice(0, limit);
       }
-      console.log("Users Found and Enhanced", usersWithRoles);
       return [usersWithRoles, more];
     } finally {
       connection.end();
@@ -286,9 +281,6 @@ class DB {
 
     const offset = page * limit;
     nameFilter = (nameFilter ?? '*').replace(/\*/g, '%');
-    if (!nameFilter.includes('%')) {
-      nameFilter = `%${nameFilter}%`;
-    }
 
     try {
       let franchises = await this.query(connection, `SELECT id, name FROM franchise WHERE name LIKE ? LIMIT ${limit + 1} OFFSET ${offset}`, [nameFilter]);

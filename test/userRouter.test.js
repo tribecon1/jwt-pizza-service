@@ -50,7 +50,6 @@ test("list users", async () => {
   const foundUser = listUsersRes.body.users.find(
     (u) => u.email === testAdminUser.email,
   );
-
   expect(foundUser).toBeDefined();
 });
 
@@ -58,7 +57,7 @@ test("list users filtered by name", async () => {
   const listUsersRes = await request(app)
     .get("/api/user")
     .set("Authorization", "Bearer " + testUserAuthToken)
-    .query({ name: "Funky" });
+    .query({ name: "*Funky*" }); // Mimicking style frontend will send
   expect(listUsersRes.status).toBe(200);
   expect(listUsersRes.body.users.length).toEqual(1);
   expect(listUsersRes.body.users[0].email).toEqual(testAdminUser.email);
