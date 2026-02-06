@@ -11,6 +11,15 @@ async function createAdminUser() {
   return { ...user, password: "toomanysecrets" };
 }
 
+async function createUserToDelete(){
+  let user = { password: "worthless", roles: [{ role: Role.Diner }] };
+  user.name = "TempUser";
+  user.email = user.name + "@farewell.com";
+
+  user = await DB.addUser(user);
+  return { ...user, password: "worthless" };
+}
+
 let testAdminUser;
 let testUserAuthToken;
 
@@ -61,4 +70,12 @@ test("list users filtered by name", async () => {
   expect(listUsersRes.status).toBe(200);
   expect(listUsersRes.body.users.length).toEqual(1);
   expect(listUsersRes.body.users[0].email).toEqual(testAdminUser.email);
+});
+
+
+test("delete a user", async () => {
+  const userToDelete = await createUserToDelete();
+  const deleteUserRes = await request(app).delete(`/api/user/${userToDelete.id}`).set("Authorization", `Bearer ${testUserAuthToken}`);
+  expect(deleteUserRes.status).toBe(200);
+  await expect(DB.getUser(userToDelete.email, userToDelete.password)).rejects.toMatchObject({statusCode: 404});
 });
