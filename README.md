@@ -52,3 +52,15 @@ Nodemon is assumed to be installed globally so that you can have hot reloading w
 ```sh
 npm -g install nodemon
 ```
+
+
+## Docker commands (in dist dir)
+
+```sh
+docker build -t jwt-pizza-service .
+docker run -d --name jwt-pizza-service -p 80:80 jwt-pizza-service
+docker ps -a (to see it running)
+docker images -a (to see the created image)
+docker stop <id> -t 0
+docker rm -fv jwt-pizza-service
+```
