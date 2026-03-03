@@ -1,5 +1,8 @@
 const app = require('./service.js');
-app.use(metrics.requestTracker);
+const { sendMetricsPeriodically } = require('./metrics');
+
+// Start pushing HTTP method metrics to Grafana once per minute.
+sendMetricsPeriodically(60_000);
 
 const port = process.argv[2] || 3000;
 app.listen(port, () => {

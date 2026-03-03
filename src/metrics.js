@@ -1,31 +1,20 @@
 const config = require('./config');
 
+// Cumulative counters by HTTP method, plus overall.
+// These are process-lifetime monotonic counters; Grafana can derive per-minute
+// rates using rate() / increase() on these sums.
+const requestsByMethod = {};
+let totalRequests = 0;
 
-const requests = {};
-
-// Middleware to track requests
+// Middleware to track requests globally by HTTP method only.
 function requestTracker(req, res, next) {
-  const endpoint = `[${req.method}] ${req.path}`;
-  requests[endpoint] = (requests[endpoint] || 0) + 1;
+  const method = req.method || 'UNKNOWN';
+  requestsByMethod[method] = (requestsByMethod[method] || 0) + 1;
+  totalRequests += 1;
   next();
 }
 
-let latency = 0;
-
-
-function getCpuUsagePercentage() {
-  const cpuUsage = os.loadavg()[0] / os.cpus().length;
-  return cpuUsage.toFixed(2) * 100;
-}
-
-function getMemoryUsagePercentage() {
-  const totalMemory = os.totalmem();
-  const freeMemory = os.freemem();
-  const usedMemory = totalMemory - freeMemory;
-  const memoryUsage = (usedMemory / totalMemory) * 100;
-  return memoryUsage.toFixed(2);
-}
-
+// Send a single metric payload to Grafana OTLP HTTP endpoint.
 function sendMetricToGrafana(metricName, metricValue, type, unit) {
   const metric = {
     resourceMetrics: [
@@ -77,19 +66,83 @@ function sendMetricToGrafana(metricName, metricValue, type, unit) {
     });
 }
 
-function sendMetricsPeriodically(period) {
-  const timer = setInterval(() => {
-    try {
-      const metrics = new OtelMetricBuilder();
-      metrics.add(httpMetrics);
-      metrics.add(systemMetrics);
-      metrics.add(userMetrics);
-      metrics.add(purchaseMetrics);
-      metrics.add(authMetrics);
+// ---- Metric builder functions ------------------------------------------------
 
-      metrics.sendToGrafana();
+// Build HTTP request metrics (per-method and overall).
+// Returns an array of simple metric descriptors, which can be extended to
+// include labels or additional metadata in the future.
+function buildHttpMetrics() {
+  const metrics = [];
+
+  for (const [method, count] of Object.entries(requestsByMethod)) {
+    metrics.push({
+      metricName: `http_requests_${method.toLowerCase()}_total`,
+      metricValue: count,
+      type: 'sum',
+      unit: '1',
+    });
+  }
+
+  metrics.push({
+    metricName: 'http_requests_total',
+    metricValue: totalRequests,
+    type: 'sum',
+    unit: '1',
+  });
+
+  return metrics;
+}
+
+// Stub: build system-level metrics (CPU, memory, etc.).
+// Fill this out later as you implement system metrics.
+function buildSystemMetrics() {
+  return [];
+}
+
+// Stub: build user-related metrics.
+function buildUserMetrics() {
+  return [];
+}
+
+// Stub: build purchase/order-related metrics (e.g., pizzas ordered).
+function buildPurchaseMetrics() {
+  return [];
+}
+
+// Stub: build auth-related metrics.
+function buildAuthMetrics() {
+  return [];
+}
+
+// Periodically collect all metric sets and send them to Grafana.
+// `periodMs` is the interval in milliseconds (e.g., 60000 for "per minute").
+function sendMetricsPeriodically(periodMs) {
+  setInterval(() => {
+    try {
+      const allMetrics = [
+        ...buildHttpMetrics(),
+        ...buildSystemMetrics(),
+        ...buildUserMetrics(),
+        ...buildPurchaseMetrics(),
+        ...buildAuthMetrics(),
+      ];
+
+      for (const { metricName, metricValue, type, unit } of allMetrics) {
+        sendMetricToGrafana(metricName, metricValue, type, unit);
+      }
     } catch (error) {
       console.log('Error sending metrics', error);
     }
-  }, period);
+  }, periodMs);
 }
+
+module.exports = {
+  requestTracker,
+  requestsByMethod,
+  buildHttpMetrics,
+  buildSystemMetrics,
+  buildUserMetrics,
+  buildPurchaseMetrics,
+  buildAuthMetrics,
+  sendMetricsPeriodically,
+};
