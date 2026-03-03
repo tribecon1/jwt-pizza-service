@@ -14,51 +14,67 @@ function requestTracker(req, res, next) {
   next();
 }
 
-// Send a single metric payload to Grafana OTLP HTTP endpoint.
-function sendMetricToGrafana(metricName, metricValue, type, unit) {
+// Build a single OTLP metric object for inclusion in a batch.
+// attributes are merged with config.metrics.source so Grafana can filter by source.
+function createMetric(metricName, metricValue, unit, type, valueType = 'asInt', attributes = {}) {
+  const merged = { ...attributes, source: config.metrics.source };
+  const dataPoint = {
+    [valueType]: metricValue,
+    timeUnixNano: Date.now() * 1000000,
+    attributes: Object.entries(merged).map(([key, value]) => ({
+      key,
+      value: { stringValue: String(value) },
+    })),
+  };
+
   const metric = {
+    name: metricName,
+    unit,
+    [type]: {
+      dataPoints: [dataPoint],
+    },
+  };
+
+  if (type === 'sum') {
+    metric[type].aggregationTemporality = 'AGGREGATION_TEMPORALITY_CUMULATIVE';
+    metric[type].isMonotonic = true;
+  }
+
+  return metric;
+}
+
+// Send a batch of OTLP metric objects to Grafana in a single POST.
+function sendMetricsToGrafana(metrics) {
+  if (metrics.length === 0) return;
+
+  const body = {
     resourceMetrics: [
       {
         scopeMetrics: [
           {
-            metrics: [
-              {
-                name: metricName,
-                unit: unit,
-                [type]: {
-                  dataPoints: [
-                    {
-                      asInt: metricValue,
-                      timeUnixNano: Date.now() * 1000000,
-                    },
-                  ],
-                },
-              },
-            ],
+            metrics,
           },
         ],
       },
-    ],
+    ]
   };
 
-  if (type === 'sum') {
-    metric.resourceMetrics[0].scopeMetrics[0].metrics[0][type].aggregationTemporality = 'AGGREGATION_TEMPORALITY_CUMULATIVE';
-    metric.resourceMetrics[0].scopeMetrics[0].metrics[0][type].isMonotonic = true;
-  }
-
-  const body = JSON.stringify(metric);
+  const bodyStr = JSON.stringify(body);
   fetch(`${config.metrics.endpointUrl}`, {
     method: 'POST',
-    body: body,
-    headers: { Authorization: `Bearer ${config.metrics.accountId}:${config.metrics.apiKey}`, 'Content-Type': 'application/json' },
+    body: bodyStr,
+    headers: {
+      Authorization: `Bearer ${config.metrics.accountId}:${config.metrics.apiKey}`,
+      'Content-Type': 'application/json',
+    },
   })
     .then((response) => {
       if (!response.ok) {
         response.text().then((text) => {
-          console.error(`Failed to push metrics data to Grafana: ${text}\n${body}`);
+          console.error(`Failed to push metrics to Grafana: ${text}\n${bodyStr}`);
         });
       } else {
-        console.log(`Pushed ${metricName}`);
+        console.log(`Pushed ${metrics.length} metrics to Grafana`);
       }
     })
     .catch((error) => {
@@ -114,12 +130,12 @@ function buildAuthMetrics() {
   return [];
 }
 
-// Periodically collect all metric sets and send them to Grafana.
+// Periodically collect all metric sets, batch them into one OTLP payload, and send to Grafana.
 // `periodMs` is the interval in milliseconds (e.g., 60000 for "per minute").
 function sendMetricsPeriodically(periodMs) {
   setInterval(() => {
     try {
-      const allMetrics = [
+      const descriptors = [
         ...buildHttpMetrics(),
         ...buildSystemMetrics(),
         ...buildUserMetrics(),
@@ -127,9 +143,11 @@ function sendMetricsPeriodically(periodMs) {
         ...buildAuthMetrics(),
       ];
 
-      for (const { metricName, metricValue, type, unit } of allMetrics) {
-        sendMetricToGrafana(metricName, metricValue, type, unit);
-      }
+      const metricObjects = descriptors.map(({ metricName, metricValue, type, unit }) =>
+        createMetric(metricName, metricValue, unit, type, 'asInt', {})
+      );
+
+      sendMetricsToGrafana(metricObjects);
     } catch (error) {
       console.log('Error sending metrics', error);
     }
