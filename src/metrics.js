@@ -1,4 +1,5 @@
 const config = require('./config');
+const os = require('os');
 
 // Cumulative counters by HTTP method, plus overall.
 // These are process-lifetime monotonic counters; Grafana can derive per-minute
@@ -109,10 +110,36 @@ function buildHttpMetrics() {
   return metrics;
 }
 
+function getCpuUsagePercentage() {
+  const cpuUsage = os.loadavg()[0] / os.cpus().length;
+  return Math.round(cpuUsage * 100);
+}
+
+function getMemoryUsagePercentage() {
+  const totalMemory = os.totalmem();
+  const freeMemory = os.freemem();
+  const usedMemory = totalMemory - freeMemory;
+  const memoryUsage = (usedMemory / totalMemory) * 100;
+  return Math.round(memoryUsage);
+}
+
 // Stub: build system-level metrics (CPU, memory, etc.).
 // Fill this out later as you implement system metrics.
 function buildSystemMetrics() {
-  return [];
+  return [
+    {
+      metricName: 'system_cpu_usage_percentage',
+      metricValue: getCpuUsagePercentage(),
+      type: 'gauge',
+      unit: '%',
+    },
+    {
+      metricName: 'system_memory_usage_percentage',
+      metricValue: getMemoryUsagePercentage(),
+      type: 'gauge',
+      unit: '%',
+    },
+  ];
 }
 
 // Stub: build user-related metrics.
