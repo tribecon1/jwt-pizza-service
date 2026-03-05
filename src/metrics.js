@@ -7,7 +7,12 @@ const requestsByMethod = {};
 let totalRequests = 0;
 let authAttemptsSuccess = 0;
 let authAttemptsFailed = 0;
-let pizza
+let pizzaPurchasesSuccess = 0;
+let pizzaPurchasesFailed = 0;
+let pizzaRevenueBtc = 0;
+let pizzaLatencyTotalMs = 0;
+let pizzaLatencyCount = 0;
+
 
 // Middleware to track requests globally by HTTP method only.
 function requestTracker(req, res, next) {
@@ -25,8 +30,33 @@ function recordAuthAttempt(success) {
   }
 }
 
-// Build a single OTLP metric object for inclusion in a batch.
-// attributes are merged with config.metrics.source so Grafana can filter by source.
+function recordPizzaPurchase({ success, latencyMs, priceBtc }) {
+  if (success) {
+    pizzaPurchasesSuccess += 1;
+    pizzaRevenueBtc += priceBtc;
+  } else {
+    pizzaPurchasesFailed += 1;
+  }
+
+  // track latency for both success and failure
+  pizzaLatencyTotalMs += latencyMs;
+  pizzaLatencyCount += 1;
+}
+
+function getCpuUsagePercentage() {
+  const cpuUsage = os.loadavg()[0] / os.cpus().length;
+  return Number((cpuUsage * 100).toFixed(2));
+}
+
+function getMemoryUsagePercentage() {
+  const totalMemory = os.totalmem();
+  const freeMemory = os.freemem();
+  const usedMemory = totalMemory - freeMemory;
+  const memoryUsage = (usedMemory / totalMemory) * 100;
+  return Number(memoryUsage.toFixed(2));
+}
+
+// Build a single OTLP metric object for inclusion in a batch
 function createMetric(metricName, metricValue, unit, type, valueType = 'asInt', attributes = {}) {
   const merged = { ...attributes, source: config.metrics.source };
   const dataPoint = {
@@ -120,21 +150,7 @@ function buildHttpMetrics() {
   return metrics;
 }
 
-function getCpuUsagePercentage() {
-  const cpuUsage = os.loadavg()[0] / os.cpus().length;
-  return Number((cpuUsage * 100).toFixed(2));
-}
 
-function getMemoryUsagePercentage() {
-  const totalMemory = os.totalmem();
-  const freeMemory = os.freemem();
-  const usedMemory = totalMemory - freeMemory;
-  const memoryUsage = (usedMemory / totalMemory) * 100;
-  return Number(memoryUsage.toFixed(2));
-}
-
-// Stub: build system-level metrics (CPU, memory, etc.).
-// Fill this out later as you implement system metrics.
 function buildSystemMetrics() {
   return [
     {
@@ -154,14 +170,44 @@ function buildSystemMetrics() {
   ];
 }
 
-// Stub: build user-related metrics.
 function buildUserMetrics() {
   return [];
 }
 
-// Stub: build purchase/order-related metrics (e.g., pizzas ordered).
 function buildPurchaseMetrics() {
-  return [];
+  return [
+    {
+      metricName: 'pizza_purchases_success_total',
+      metricValue: pizzaPurchasesSuccess,
+      type: 'sum',
+      unit: '1',
+    },
+    {
+      metricName: 'pizza_purchases_failed_total',
+      metricValue: pizzaPurchasesFailed,
+      type: 'sum',
+      unit: '1',
+    },
+    {
+      metricName: 'pizza_revenue_btc_total',
+      metricValue: pizzaRevenueBtc,
+      type: 'sum',
+      unit: 'BTC',
+      valueType: 'asDouble',
+    },
+    {
+      metricName: 'pizza_purchase_latency_ms_total',
+      metricValue: pizzaLatencyTotalMs,
+      type: 'sum',
+      unit: 'ms',
+    },
+    {
+      metricName: 'pizza_purchase_latency_count_total',
+      metricValue: pizzaLatencyCount,
+      type: 'sum',
+      unit: '1',
+    },
+  ];
 }
 
 // Build auth-related metrics (login success vs failed).
@@ -216,4 +262,5 @@ module.exports = {
   buildPurchaseMetrics,
   buildAuthMetrics,
   sendMetricsPeriodically,
+  recordPizzaPurchase,
 };
