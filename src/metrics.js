@@ -112,7 +112,7 @@ function buildHttpMetrics() {
 
 function getCpuUsagePercentage() {
   const cpuUsage = os.loadavg()[0] / os.cpus().length;
-  return Math.round(cpuUsage * 100);
+  return Number((cpuUsage * 100).toFixed(2));
 }
 
 function getMemoryUsagePercentage() {
@@ -120,7 +120,7 @@ function getMemoryUsagePercentage() {
   const freeMemory = os.freemem();
   const usedMemory = totalMemory - freeMemory;
   const memoryUsage = (usedMemory / totalMemory) * 100;
-  return Math.round(memoryUsage);
+  return Number(memoryUsage.toFixed(2));
 }
 
 // Stub: build system-level metrics (CPU, memory, etc.).
@@ -132,12 +132,14 @@ function buildSystemMetrics() {
       metricValue: getCpuUsagePercentage(),
       type: 'gauge',
       unit: '%',
+      valueType: 'asDouble',
     },
     {
       metricName: 'system_memory_usage_percentage',
       metricValue: getMemoryUsagePercentage(),
       type: 'gauge',
       unit: '%',
+      valueType: 'asDouble',
     },
   ];
 }
@@ -170,8 +172,8 @@ function sendMetricsPeriodically(periodMs) {
         ...buildAuthMetrics(),
       ];
 
-      const metricObjects = descriptors.map(({ metricName, metricValue, type, unit }) =>
-        createMetric(metricName, metricValue, unit, type, 'asInt', {})
+      const metricObjects = descriptors.map(({ metricName, metricValue, type, unit, valueType = 'asInt' }) =>
+        createMetric(metricName, metricValue, unit, type, valueType, {})
       );
 
       sendMetricsToGrafana(metricObjects);
