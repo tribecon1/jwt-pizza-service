@@ -1,11 +1,13 @@
 const config = require('./config');
 const os = require('os');
 
-// Cumulative counters by HTTP method, plus overall.
 // These are process-lifetime monotonic counters; Grafana can derive per-minute
 // rates using rate() / increase() on these sums.
 const requestsByMethod = {};
 let totalRequests = 0;
+
+let loginAttemptsSuccess = 0;
+let loginAttemptsFailed = 0;
 
 // Middleware to track requests globally by HTTP method only.
 function requestTracker(req, res, next) {
@@ -13,6 +15,14 @@ function requestTracker(req, res, next) {
   requestsByMethod[method] = (requestsByMethod[method] || 0) + 1;
   totalRequests += 1;
   next();
+}
+
+function recordLoginAttempt(success) {
+  if (success) {
+    loginAttemptsSuccess += 1;
+  } else {
+    loginAttemptsFailed += 1;
+  }
 }
 
 // Build a single OTLP metric object for inclusion in a batch.
@@ -154,9 +164,22 @@ function buildPurchaseMetrics() {
   return [];
 }
 
-// Stub: build auth-related metrics.
+// Build auth-related metrics (login success vs failed).
 function buildAuthMetrics() {
-  return [];
+  return [
+    {
+      metricName: 'auth_login_success_total',
+      metricValue: loginAttemptsSuccess,
+      type: 'sum',
+      unit: '1',
+    },
+    {
+      metricName: 'auth_login_failed_total',
+      metricValue: loginAttemptsFailed,
+      type: 'sum',
+      unit: '1',
+    },
+  ];
 }
 
 // Periodically collect all metric sets, batch them into one OTLP payload, and send to Grafana.
@@ -186,6 +209,7 @@ function sendMetricsPeriodically(periodMs) {
 module.exports = {
   requestTracker,
   requestsByMethod,
+  recordLoginAttempt,
   buildHttpMetrics,
   buildSystemMetrics,
   buildUserMetrics,
