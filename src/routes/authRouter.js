@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config.js');
 const { asyncHandler } = require('../endpointHelper.js');
 const { DB, Role } = require('../database/database.js');
-const { recordLoginAttempt } = require('../metrics.js');
+const { recordAuthAttempt } = require('../metrics.js');
 
 const authRouter = express.Router();
 
@@ -62,16 +62,16 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
-      recordLoginAttempt(false);
+      recordAuthAttempt(false);
       return res.status(400).json({ message: 'name, email, and password are required' });
     }
     try {
       const user = await DB.addUser({ name, email, password, roles: [{ role: Role.Diner }] });
       const auth = await setAuth(user);
-      recordLoginAttempt(true);
+      recordAuthAttempt(true);
       res.json({ user: user, token: auth });
     } catch (err) {
-      recordLoginAttempt(false);
+      recordAuthAttempt(false);
       throw err;
     }
   })
@@ -85,10 +85,10 @@ authRouter.put(
       const { email, password } = req.body;
       const user = await DB.getUser(email, password);
       const auth = await setAuth(user);
-      recordLoginAttempt(true);
+      recordAuthAttempt(true);
       res.json({ user: user, token: auth });
     } catch (err) {
-      recordLoginAttempt(false);
+      recordAuthAttempt(false);
       throw err;
     }
   })

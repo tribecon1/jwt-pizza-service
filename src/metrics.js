@@ -5,9 +5,9 @@ const os = require('os');
 // rates using rate() / increase() on these sums.
 const requestsByMethod = {};
 let totalRequests = 0;
-
-let loginAttemptsSuccess = 0;
-let loginAttemptsFailed = 0;
+let authAttemptsSuccess = 0;
+let authAttemptsFailed = 0;
+let pizza
 
 // Middleware to track requests globally by HTTP method only.
 function requestTracker(req, res, next) {
@@ -17,11 +17,11 @@ function requestTracker(req, res, next) {
   next();
 }
 
-function recordLoginAttempt(success) {
+function recordAuthAttempt(success) {
   if (success) {
-    loginAttemptsSuccess += 1;
+    authAttemptsSuccess += 1;
   } else {
-    loginAttemptsFailed += 1;
+    authAttemptsFailed += 1;
   }
 }
 
@@ -168,14 +168,14 @@ function buildPurchaseMetrics() {
 function buildAuthMetrics() {
   return [
     {
-      metricName: 'auth_login_success_total',
-      metricValue: loginAttemptsSuccess,
+      metricName: 'auth_success_total',
+      metricValue: authAttemptsSuccess,
       type: 'sum',
       unit: '1',
     },
     {
-      metricName: 'auth_login_failed_total',
-      metricValue: loginAttemptsFailed,
+      metricName: 'auth_failed_total',
+      metricValue: authAttemptsFailed,
       type: 'sum',
       unit: '1',
     },
@@ -209,7 +209,7 @@ function sendMetricsPeriodically(periodMs) {
 module.exports = {
   requestTracker,
   requestsByMethod,
-  recordLoginAttempt,
+  recordAuthAttempt,
   buildHttpMetrics,
   buildSystemMetrics,
   buildUserMetrics,
