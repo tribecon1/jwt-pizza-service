@@ -10,7 +10,7 @@ let authAttemptsFailed = 0;
 let pizzaPurchasesSuccess = 0;
 let pizzaPurchasesFailed = 0;
 let pizzaRevenueBtc = 0;
-let pizzaLatencyTotalMs = 0;
+let pizzaLatencyTotalSeconds = 0;
 let pizzaLatencyCount = 0;
 
 
@@ -38,8 +38,8 @@ function recordPizzaPurchase({ success, latencyMs, priceBtc }) {
     pizzaPurchasesFailed += 1;
   }
 
-  // track latency for both success and failure
-  pizzaLatencyTotalMs += latencyMs;
+  // track latency for both success and failure (in decimal seconds)
+  pizzaLatencyTotalSeconds += latencyMs / 1000;
   pizzaLatencyCount += 1;
 }
 
@@ -196,10 +196,11 @@ function buildPurchaseMetrics() {
       valueType: 'asDouble',
     },
     {
-      metricName: 'pizza_purchase_latency_ms_total',
-      metricValue: pizzaLatencyTotalMs,
+      metricName: 'pizza_purchase_latency_seconds_total',
+      metricValue: pizzaLatencyTotalSeconds,
       type: 'sum',
-      unit: 'ms',
+      unit: 's',
+      valueType: 'asDouble',
     },
     {
       metricName: 'pizza_purchase_latency_count_total',
