@@ -12,6 +12,8 @@ let pizzaPurchasesFailed = 0;
 let pizzaRevenueBtc = 0;
 let pizzaLatencyTotalSeconds = 0;
 let pizzaLatencyCount = 0;
+let httpLatencyTotalSeconds = 0;
+let httpLatencyCount = 0;
 
 
 // Middleware to track requests globally by HTTP method only.
@@ -19,6 +21,32 @@ function requestTracker(req, res, next) {
   const method = req.method || 'UNKNOWN';
   requestsByMethod[method] = (requestsByMethod[method] || 0) + 1;
   totalRequests += 1;
+  next();
+}
+
+function recordHttpRequest({ latencyMs }) {
+  if (latencyMs < 0) {
+    return;
+  }
+
+  httpLatencyTotalSeconds += latencyMs / 1000;
+  httpLatencyCount += 1;
+}
+
+function latencyTracker(req, res, next) {
+  const start = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    try {
+      const end = process.hrtime.bigint();
+      const diffNs = end - start;
+      const latencyMs = Number(diffNs) / 1e6;
+      recordHttpRequest({ latencyMs });
+    } catch (error) {
+      console.error('Failed to record HTTP latency metric', error);
+    }
+  });
+
   next();
 }
 
@@ -211,6 +239,24 @@ function buildPurchaseMetrics() {
   ];
 }
 
+function buildHttpLatencyMetrics() {
+  return [
+    {
+      metricName: 'http_request_latency_seconds_total',
+      metricValue: httpLatencyTotalSeconds,
+      type: 'sum',
+      unit: 's',
+      valueType: 'asDouble',
+    },
+    {
+      metricName: 'http_request_latency_count_total',
+      metricValue: httpLatencyCount,
+      type: 'sum',
+      unit: '1',
+    },
+  ];
+}
+
 // Build auth-related metrics (login success vs failed).
 function buildAuthMetrics() {
   return [
@@ -240,6 +286,7 @@ function sendMetricsPeriodically(periodMs) {
         ...buildUserMetrics(),
         ...buildPurchaseMetrics(),
         ...buildAuthMetrics(),
+        ...buildHttpLatencyMetrics(),
       ];
 
       const metricObjects = descriptors.map(({ metricName, metricValue, type, unit, valueType = 'asInt' }) =>
@@ -255,6 +302,7 @@ function sendMetricsPeriodically(periodMs) {
 
 module.exports = {
   requestTracker,
+  latencyTracker,
   requestsByMethod,
   recordAuthAttempt,
   buildHttpMetrics,
@@ -264,4 +312,5 @@ module.exports = {
   buildAuthMetrics,
   sendMetricsPeriodically,
   recordPizzaPurchase,
+  recordHttpRequest,
 };
