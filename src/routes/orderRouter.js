@@ -108,7 +108,7 @@ orderRouter.post(
     } catch (error) {
       latencyMs = Date.now() - start;
       success = false;
-      throw new StatusCodeError('Failed to fulfill order at factory', 500);
+      throw new StatusCodeError(`Failed to fulfill order at factory: ${error.message}`, 500);
     } finally {
       try {
         metrics.recordPizzaPurchase({
