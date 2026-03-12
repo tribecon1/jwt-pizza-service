@@ -54,7 +54,8 @@ test("list users unauthorized", async () => {
 test("list users", async () => {
   const listUsersRes = await request(app)
     .get("/api/user")
-    .set("Authorization", "Bearer " + testUserAuthToken);
+    .set("Authorization", "Bearer " + testUserAuthToken)
+    .query({ limit: 20 });
   expect(listUsersRes.status).toBe(200);
   const foundUser = listUsersRes.body.users.find(
     (u) => u.email === testAdminUser.email,
