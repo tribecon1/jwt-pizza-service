@@ -14,6 +14,8 @@ let pizzaLatencyTotalSeconds = 0;
 let pizzaLatencyCount = 0;
 let httpLatencyTotalSeconds = 0;
 let httpLatencyCount = 0;
+const ACTIVE_USER_WINDOW_MS = 60_000;
+const activeUsersLastSeen = new Map();
 
 
 // Middleware to track requests globally by HTTP method only.
@@ -48,6 +50,40 @@ function latencyTracker(req, res, next) {
   });
 
   next();
+}
+
+function recordActiveUser(userId) {
+  if (!userId) {
+    return;
+  }
+
+  activeUsersLastSeen.set(String(userId), Date.now());
+}
+
+function pruneAndCountActiveUsers(now) {
+  let count = 0;
+
+  for (const [userId, lastSeen] of activeUsersLastSeen.entries()) {
+    if (now - lastSeen > ACTIVE_USER_WINDOW_MS) {
+      activeUsersLastSeen.delete(userId);
+    } else {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function activeUserTracker(req, res, next) {
+  try {
+    if (req.user && req.user.id) {
+      recordActiveUser(req.user.id);
+    }
+  } catch (error) {
+    console.error('Failed to record active user metric', error);
+  } finally {
+    next();
+  }
 }
 
 function recordAuthAttempt(success) {
@@ -152,10 +188,6 @@ function sendMetricsToGrafana(metrics) {
 }
 
 // ---- Metric builder functions ------------------------------------------------
-
-// Build HTTP request metrics (per-method and overall).
-// Returns an array of simple metric descriptors, which can be extended to
-// include labels or additional metadata in the future.
 function buildHttpMetrics() {
   const metrics = [];
 
@@ -199,7 +231,17 @@ function buildSystemMetrics() {
 }
 
 function buildUserMetrics() {
-  return [];
+  const now = Date.now();
+  const activeUserCount = pruneAndCountActiveUsers(now);
+
+  return [
+    {
+      metricName: 'active_authenticated_users_1m',
+      metricValue: activeUserCount,
+      type: 'gauge',
+      unit: '1',
+    },
+  ];
 }
 
 function buildPurchaseMetrics() {
@@ -313,4 +355,6 @@ module.exports = {
   sendMetricsPeriodically,
   recordPizzaPurchase,
   recordHttpRequest,
+  recordActiveUser,
+  activeUserTracker,
 };

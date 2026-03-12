@@ -5,11 +5,12 @@ const franchiseRouter = require('./routes/franchiseRouter.js');
 const userRouter = require('./routes/userRouter.js');
 const version = require('./version.json');
 const config = require('./config.js');
-const { requestTracker, latencyTracker } = require('./metrics');
+const { requestTracker, latencyTracker, activeUserTracker } = require('./metrics');
 
 const app = express();
 app.use(express.json());
 app.use(setAuthUser);
+app.use(activeUserTracker);
 app.use(requestTracker);
 app.use(latencyTracker);
 app.use((req, res, next) => {
