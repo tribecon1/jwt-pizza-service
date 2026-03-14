@@ -178,9 +178,9 @@ function sendMetricsToGrafana(metrics) {
         response.text().then((text) => {
           console.error(`Failed to push metrics to Grafana: ${text}\n${bodyStr}`);
         });
-      } else {
-        console.log(`Pushed ${metrics.length} metrics to Grafana`);
-      }
+      } //else {
+        //console.log(`Pushed ${metrics.length} metrics to Grafana`);
+      //}
     })
     .catch((error) => {
       console.error('Error pushing metrics:', error);
