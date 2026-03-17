@@ -72,10 +72,11 @@ jobs:
       - name: Wait for API
         run: |
           echo "Waiting for API..."
-          until curl -s http://localhost:3000/api/health > /dev/null; do
+          until curl -fsS http://localhost:3000/api/health > /dev/null; do
             sleep 2
           done
-          echo "API is up"
+          echo "API is up. Health response:"
+          curl -fsS http://localhost:3000/api/health || true
 
       - name: Insert test data into database instance
         run: |
