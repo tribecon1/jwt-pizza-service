@@ -34,6 +34,19 @@ class Logger {
     this.log('info', 'factory', logData);
   }
 
+  unhandledError(err, req) {
+    const statusCode = err.statusCode ?? 500;
+    const logData = {
+      path: req.originalUrl,
+      method: req.method,
+      statusCode,
+      message: err.message,
+      stack: err.stack,
+      userId: req.user?.id,
+    };
+    this.log('error', 'unhandled', logData);
+  }
+
   log(level, type, logData) {
     const labels = { component: config.logging.source, level: level, type: type };
     const values = [this.nowString(), this.sanitize(logData)];
