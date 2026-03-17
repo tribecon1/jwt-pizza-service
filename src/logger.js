@@ -13,14 +13,25 @@ class Logger {
         resBody: JSON.stringify(resBody),
       };
       const level = this.statusToLogLevel(res.statusCode);
-      this.logEndpoint(level, 'http', logData);
+      this.log(level, 'http', logData);
       res.send = send;
       return res.send(resBody);
     };
     next();
   };
 
-  logEndpoint(level, type, logData) {
+  dbQuery(sql, params, meta = {}) {
+    // Be careful: params can contain secrets (passwords, tokens, etc.)
+    const logData = {
+      sql,
+      // safest default: omit params entirely
+      ...meta, // e.g. durationMs, rowCount, error
+    };
+    const level = meta.error ? 'error' : 'info';
+    this.log(level, 'db', logData);
+  }
+
+  log(level, type, logData) {
     const labels = { component: config.logging.source, level: level, type: type };
     const values = [this.nowString(), this.sanitize(logData)];
     const logEvent = { streams: [{ stream: labels, values: [values] }] };
