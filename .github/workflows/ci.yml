@@ -69,6 +69,9 @@ jobs:
             },
           };" > src/config.js
 
+      - name: Seed admin user
+        run: node ./scripts/ci-seed-admin.js
+
       # My added portion for inserting the bulk test data
       - name: Start API server
         run: |
