@@ -112,10 +112,10 @@ orderRouter.post(
       logger.factoryCall({
         url: `${config.factory.url}/api/order`,
         method: 'POST',
-        requestBody: factoryRequestBody,
         status: r.status,
         ok: r.ok,
-        responseBody: j,
+        reqBody: JSON.stringify(factoryRequestBody),
+        resBody: JSON.stringify(j),
       });
 
       if (r.ok) {
@@ -129,8 +129,9 @@ orderRouter.post(
       logger.factoryCall({
         url: `${config.factory.url}/api/order`,
         method: 'POST',
-        requestBody: factoryRequestBody,
         ok: false,
+        reqBody: JSON.stringify(factoryRequestBody),
+        resBody: null,
         error: { message: error?.message, name: error?.name },
       });
       throw new StatusCodeError(`Failed to fulfill order at factory: ${error.message}`, 500);
