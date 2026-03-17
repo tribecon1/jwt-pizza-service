@@ -389,13 +389,13 @@ class DB {
     const start = Date.now();
     try {
       const [results] = await connection.execute(sql, params);
-      logger.dbQuery(sql, undefined, {
+      logger.dbQuery(sql, {
         durationMs: Date.now() - start,
         rowCount: Array.isArray(results) ? results.length : undefined,
       });
       return results;
     } catch (err) {
-      logger.dbQuery(sql, undefined, {
+      logger.dbQuery(sql, {
         durationMs: Date.now() - start,
         error: err.message,
       });

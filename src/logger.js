@@ -20,8 +20,7 @@ class Logger {
     next();
   };
 
-  dbQuery(sql, params, meta = {}) {
-    // Be careful: params can contain secrets (passwords, tokens, etc.)
+  dbQuery(sql, meta = {}) {
     const logData = {
       sql,
       // safest default: omit params entirely
@@ -29,6 +28,10 @@ class Logger {
     };
     const level = meta.error ? 'error' : 'info';
     this.log(level, 'db', logData);
+  }
+
+  factoryCall(logData) {
+    this.log('info', 'factory', logData);
   }
 
   log(level, type, logData) {
@@ -51,7 +54,14 @@ class Logger {
 
   sanitize(logData) {
     logData = JSON.stringify(logData);
-    return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
+    logData = logData.replace(/\\"password\\":\s*\\"[^"]*\\"/gi, '\\"password\\": \\"*****\\"');
+    logData = logData.replace(/\\"authorization\\":\s*\\"Bearer [^"]+\\"/gi, '\\"authorization\\": \\"Bearer *****\\"');
+    logData = logData.replace(/\\"token\\":\s*\\"[^"]*\\"/gi, '\\"token\\": \\"*****\\"');
+    logData = logData.replace(/\\"jwt\\":\s*\\"[^"]*\\"/gi, '\\"jwt\\": \\"*****\\"');
+    logData = logData.replace(/\\"jwtSecret\\":\s*\\"[^"]*\\"/gi, '\\"jwtSecret\\": \\"*****\\"');
+    logData = logData.replace(/\\"apiKey\\":\s*\\"[^"]*\\"/gi, '\\"apiKey\\": \\"*****\\"');
+
+    return logData;
   }
 
   sendLogToGrafana(event) {

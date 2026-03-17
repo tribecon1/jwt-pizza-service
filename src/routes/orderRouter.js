@@ -4,6 +4,7 @@ const { Role, DB } = require('../database/database.js');
 const { authRouter } = require('./authRouter.js');
 const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 const metrics = require('../metrics.js');
+const logger = require('../logger.js');
 
 const orderRouter = express.Router();
 
@@ -89,16 +90,33 @@ orderRouter.post(
     let success = false;
     let latencyMs = 0;
 
+    const factoryRequestBody = { diner: { id: req.user.id, name: req.user.name, email: req.user.email }, order };
+
     try {
       const r = await fetch(`${config.factory.url}/api/order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', authorization: `Bearer ${config.factory.apiKey}` },
-        body: JSON.stringify({ diner: { id: req.user.id, name: req.user.name, email: req.user.email }, order }),
+        body: JSON.stringify(factoryRequestBody),
       });
-      const j = await r.json();
+      let j;
+      try {
+        j = await r.json();
+      } catch (parseError) {
+        const t = await r.text();
+        j = { parseError: parseError?.message, raw: t };
+      }
 
       latencyMs = Date.now() - start;
       success = r.ok;
+
+      logger.factoryCall({
+        url: `${config.factory.url}/api/order`,
+        method: 'POST',
+        requestBody: factoryRequestBody,
+        status: r.status,
+        ok: r.ok,
+        responseBody: j,
+      });
 
       if (r.ok) {
         res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
@@ -108,6 +126,13 @@ orderRouter.post(
     } catch (error) {
       latencyMs = Date.now() - start;
       success = false;
+      logger.factoryCall({
+        url: `${config.factory.url}/api/order`,
+        method: 'POST',
+        requestBody: factoryRequestBody,
+        ok: false,
+        error: { message: error?.message, name: error?.name },
+      });
       throw new StatusCodeError(`Failed to fulfill order at factory: ${error.message}`, 500);
     } finally {
       try {
