@@ -66,15 +66,18 @@ class Logger {
   }
 
   sanitize(logData) {
-    logData = JSON.stringify(logData);
-    logData = logData.replace(/\\"password\\":\s*\\"[^"]*\\"/gi, '\\"password\\": \\"*****\\"');
-    logData = logData.replace(/\\"authorization\\":\s*\\"Bearer [^"]+\\"/gi, '\\"authorization\\": \\"Bearer *****\\"');
-    logData = logData.replace(/\\"token\\":\s*\\"[^"]*\\"/gi, '\\"token\\": \\"*****\\"');
-    logData = logData.replace(/\\"jwt\\":\s*\\"[^"]*\\"/gi, '\\"jwt\\": \\"*****\\"');
-    logData = logData.replace(/\\"jwtSecret\\":\s*\\"[^"]*\\"/gi, '\\"jwtSecret\\": \\"*****\\"');
-    logData = logData.replace(/\\"apiKey\\":\s*\\"[^"]*\\"/gi, '\\"apiKey\\": \\"*****\\"');
+    let text = JSON.stringify(logData);
 
-    return logData;
+    // Redact common secret-bearing keys (case-insensitive), including auth token variants.
+    text = text.replace(
+      /\\"(?:password|pass|pwd|token|accessToken|refreshToken|idToken|access_token|refresh_token|id_token|jwt|jwtSecret|apiKey|api_key|secret|clientSecret|authorization)\\":\s*\\"[^"]*\\"/gi,
+      (match) => match.replace(/:\s*\\"[^"]*\\"/i, ': \\"*****\\"')
+    );
+
+    // Redact bearer tokens that may appear in any string field/message.
+    text = text.replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi, 'Bearer *****');
+
+    return text;
   }
 
   sendLogToGrafana(event) {
