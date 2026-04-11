@@ -4,6 +4,7 @@ const config = require('../config.js');
 const { asyncHandler } = require('../endpointHelper.js');
 const { DB, Role } = require('../database/database.js');
 const { recordAuthAttempt } = require('../metrics.js');
+const { checkLoginRateLimit } = require('../loginRateLimit.js');
 
 const authRouter = express.Router();
 
@@ -81,14 +82,27 @@ authRouter.post(
 authRouter.put(
   '/',
   asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      recordAuthAttempt(false);
+      return res.status(400).json({ message: 'email and password are required' });
+    }
+
+    const clientIp = req.ip || req.socket?.remoteAddress;
+    if (!checkLoginRateLimit(clientIp).allowed) {
+      return res.status(429).json({ message: 'too many login attempts, try again later' });
+    }
+
     try {
-      const { email, password } = req.body;
       const user = await DB.getUser(email, password);
       const auth = await setAuth(user);
       recordAuthAttempt(true);
       res.json({ user: user, token: auth });
     } catch (err) {
       recordAuthAttempt(false);
+      if (err.statusCode === 404 || err.statusCode === 403) {
+        return res.status(403).json({ message: 'incorrect credentials' });
+      }
       throw err;
     }
   })

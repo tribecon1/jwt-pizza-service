@@ -9,6 +9,7 @@ const { requestTracker, latencyTracker, activeUserTracker } = require('./metrics
 const logger = require('./logger');
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(setAuthUser);
 app.use(activeUserTracker);
