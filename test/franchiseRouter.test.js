@@ -58,6 +58,29 @@ test("Create/Delete franchise", async () => {
   expect(deleteFranchiseRes.body.message).toBe("franchise deleted");
 });
 
+test("Diner cannot delete a franchise", async () => {
+  const dinerEmail = `diner_${randomName()}@test.com`;
+  await request(app).post("/api/auth").send({
+    name: "diner tester",
+    email: dinerEmail,
+    password: "dinersecret",
+  });
+  const dinerAuthRes = await request(app).put("/api/auth").send({
+    email: dinerEmail,
+    password: "dinersecret",
+  });
+  const dinerToken = dinerAuthRes.body.token;
+
+  const victimFranchise = { name: `Victim ${randomName()} Franchise`, admins: [{ email: "adminTester@admin.com" }] };
+  const createRes = await request(app).post("/api/franchise").set("Authorization", `Bearer ${testUserAuthToken}`).send(victimFranchise);
+  const franchiseId = createRes.body.id;
+
+  const deleteRes = await request(app).delete(`/api/franchise/${franchiseId}`).set("Authorization", `Bearer ${dinerToken}`);
+
+  expect(deleteRes.status).toBe(403);
+  expect(deleteRes.body.message).toBe("unable to delete a franchise");
+});
+
 test("Create store of franchise", async () => {
     const newFranchise = {name: `StoreTest ${randomName()} Franchise`, admins: [{ email: "adminTester@admin.com" }],};
     const createStoreFranchiseRes = await request(app).post("/api/franchise").set("Authorization", `Bearer ${testUserAuthToken}`).send(newFranchise);
