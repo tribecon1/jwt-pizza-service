@@ -30,6 +30,21 @@ test('login', async () => {
   expect(loginRes.body.user).toMatchObject(expectedUser);
 });
 
+test('docs without authentication returns 401', async () => {
+  const res = await request(app).get('/api/docs');
+  expect(res.status).toBe(401);
+  expect(res.body.message).toBe('unauthorized');
+});
+
+test('docs with authentication returns version and endpoints only', async () => {
+  const res = await request(app).get('/api/docs').set('Authorization', `Bearer ${testUserAuthToken}`);
+  expect(res.status).toBe(200);
+  expect(res.body.version).toBeDefined();
+  expect(Array.isArray(res.body.endpoints)).toBe(true);
+  expect(res.body.endpoints.length).toBeGreaterThan(0);
+  expect(res.body.config).toBeUndefined();
+});
+
 test('logout success', async () => {
   const logoutRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${testUserAuthToken}`).send();
 

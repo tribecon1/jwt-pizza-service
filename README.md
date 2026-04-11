@@ -33,10 +33,10 @@ module.exports =  {
 
 ## Endpoints
 
-You can get the documentation for all endpoints by making the following request.
+You can get the documentation for all endpoints with a valid session token (after `PUT /api/auth` login or `POST /api/auth` register).
 
 ```sh
-curl localhost:3000/api/docs
+curl -H "Authorization: Bearer <token>" localhost:3000/api/docs
 ```
 
 ## Development notes
